@@ -112,7 +112,7 @@ leftpad s n
 -- * you'll probably need a recursive helper function
 
 countdown :: Integer -> String
-countdown n = countdown' "Ready! " n
+countdown = countdown' "Ready! "
 
 countdown' :: String -> Integer -> String
 countdown' s 0 = s ++ "Liftoff!"
