@@ -336,21 +336,23 @@ inc (O b) = I b
 inc (I b) = O (inc b)
 
 prettyPrint :: Bin -> String
-prettyPrint End = ""
-prettyPrint (O b) = prettyPrint b ++ "0"
-prettyPrint (I b) = prettyPrint b ++ "1"
+prettyPrint b = prettyPrint' b ""
+  where
+    prettyPrint' End   s = s
+    prettyPrint' (O b) s = prettyPrint' b ('0':s)
+    prettyPrint' (I b) s = prettyPrint' b ('1':s)
 
 fromBin :: Bin -> Int
-fromBin b = round (go b 0)
-  where
-    go End _ = 0
-    go (O b) i = go b (i + 1)
-    go (I b) i = 2 ** i + go b (i + 1)
+fromBin End   = 0
+fromBin (O b) = 2 * fromBin b
+fromBin (I b) = 2 * fromBin b + 1
+
+bits :: Int -> [Int]
+bits 0 = [0]
+bits 1 = [1]
+bits n = n `mod` 2 : bits (n `div` 2)
 
 toBin :: Int -> Bin
-toBin n = go (n `div` 2) (n `mod` 2)
-  where
-    go 0 0 = O End
-    go 0 1 = I End
-    go d 0 = O (go (d `div` 2) (d `mod` 2))
-    go d 1 = I (go (d `div` 2) (d `mod` 2))
+toBin n = foldr helper End (bits n)
+  where helper 0 = O
+        helper _ = I
