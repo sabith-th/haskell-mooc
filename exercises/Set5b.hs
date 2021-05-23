@@ -40,7 +40,7 @@ treeSize (Node a t1 t2) = 1 + treeSize t1 + treeSize t2
 
 treeMax :: Tree Int -> Int
 treeMax Empty = 0
-treeMax (Node a t1 t2) = max a (max (treeMax t1) (treeMax t2))
+treeMax (Node a t1 t2) = maximum [a, treeMax t1, treeMax t2]
 
 ------------------------------------------------------------------------------
 -- Ex 4: implement a function that checks if all tree values satisfy a
