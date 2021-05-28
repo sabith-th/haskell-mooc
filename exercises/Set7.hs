@@ -53,25 +53,17 @@ emptySet = Set []
 
 -- member tests if an element is in a set
 member :: Eq a => a -> Set a -> Bool
-member a (Set []) = False
-member a (Set (i : xs))
-  | a == i = True
-  | otherwise = member a (Set xs)
+member a (Set xs) = a `elem` xs
 
 -- add a member to a set
 add :: Ord a => a -> Set a -> Set a
 add a (Set xs) = Set (go a xs)
   where
     go a [] = [a]
-    go a [i]
-      | a == i = [a]
-      | a < i = [a, i]
-      | otherwise = [i, a]
-    go a (i : j : rest)
-      | a == i || a == j = i : j : rest
-      | a < i = [a, i, j] ++ rest
-      | a < j = [i, a, j] ++ rest
-      | otherwise = [i, j] ++ go a rest
+    go a (x : xs)
+      | a == x = x : xs
+      | a > x = x : go a xs
+      | a < x = a : x : xs
 
 ------------------------------------------------------------------------------
 -- Ex 3: a state machine for baking a cake. The type Event represents
@@ -111,20 +103,14 @@ data State = Start | Error | Finished | Egged | Floured | Sugared | ReadyToMix |
 
 step :: State -> Event -> State
 step Start AddEggs = Egged
-step Start _ = Error
 step Egged AddFlour = Floured
 step Egged AddSugar = Sugared
-step Egged _ = Error
 step Floured AddSugar = ReadyToMix
-step Floured _ = Error
 step Sugared AddFlour = ReadyToMix
-step Sugared _ = Error
 step ReadyToMix Mix = Mixed
-step ReadyToMix _ = Error
 step Mixed Bake = Finished
-step Mixed _ = Error
-step Error _ = Error
 step Finished _ = Finished
+step _ _ = Error
 
 -- do not edit this
 bake :: [Event] -> State
@@ -143,17 +129,15 @@ bake = go Start
 --   average (1.0 :| [2.0,3.0])  ==>  2.0
 
 average :: Fractional a => NonEmpty a -> a
-average (x :| []) = x
 average (x :| xs) = (sum xs + x) / fromIntegral (1 + length xs)
 
 ------------------------------------------------------------------------------
 -- Ex 5: reverse a NonEmpty list.
 
 reverseNonEmpty :: NonEmpty a -> NonEmpty a
-reverseNonEmpty (x :| []) = x :| []
-reverseNonEmpty (x :| xs) = head rev :| (tail rev ++ [x])
-  where
-    rev = reverse xs
+reverseNonEmpty (x :| xs) = case reverse xs of
+  [] -> x :| []
+  (a : as) -> a :| (as ++ [x])
 
 ------------------------------------------------------------------------------
 -- Ex 6: implement Semigroup instances for the Distance, Time and
@@ -274,21 +258,10 @@ data PasswordRequirement
 
 passwordAllowed :: String -> PasswordRequirement -> Bool
 passwordAllowed p (MinimumLength l) = length p >= l
-passwordAllowed p (ContainsSome s) = go p s
-  where
-    go _ [] = False
-    go p (x : xs)
-      | isElement x p = True
-      | otherwise = go p xs
+passwordAllowed p (ContainsSome s) = any (`elem` s) p
 passwordAllowed p (DoesNotContain s) = not (passwordAllowed p (ContainsSome s))
 passwordAllowed p (And r1 r2) = passwordAllowed p r1 && passwordAllowed p r2
 passwordAllowed p (Or r1 r2) = passwordAllowed p r1 || passwordAllowed p r2
-
-isElement :: Eq a => a -> [a] -> Bool
-isElement _ [] = False
-isElement a (x : xs)
-  | a == x = True
-  | otherwise = isElement a xs
 
 ------------------------------------------------------------------------------
 -- Ex 10: a DSL for simple arithmetic expressions with addition and
@@ -310,30 +283,25 @@ isElement a (x : xs)
 --     ==> "(3*(1+1))"
 --
 
-data Arithmetic = Operand Integer | Expression String Arithmetic Arithmetic
+data Arithmetic
+  = Literal Integer
+  | Plus Arithmetic Arithmetic
+  | Times Arithmetic Arithmetic
   deriving (Show)
 
 literal :: Integer -> Arithmetic
-literal = Operand
+literal = Literal
 
 operation :: String -> Arithmetic -> Arithmetic -> Arithmetic
-operation op (Operand a) (Operand b) = Expression op (Operand a) (Operand b)
-operation op a b = Expression op a b
+operation "+" = Plus
+operation "*" = Times
 
 evaluate :: Arithmetic -> Integer
-evaluate (Operand a) = a
-evaluate (Expression op (Operand a) (Operand b))
-  | op == "+" = a + b
-  | op == "*" = a * b
-evaluate (Expression op a b)
-  | op == "+" = evaluate a + evaluate b
-  | op == "*" = evaluate a * evaluate b
+evaluate (Literal i) = i
+evaluate (Plus a b) = evaluate a + evaluate b
+evaluate (Times a b) = evaluate a * evaluate b
 
 render :: Arithmetic -> String
-render (Operand a) = show a
-render (Expression op (Operand a) (Operand b))
-  | op == "+" = "(" ++ show a ++ "+" ++ show b ++ ")"
-  | op == "*" = "(" ++ show a ++ "*" ++ show b ++ ")"
-render (Expression op a b)
-  | op == "+" = "(" ++ render a ++ "+" ++ render b ++ ")"
-  | op == "*" = "(" ++ render a ++ "*" ++ render b ++ ")"
+render (Literal i) = show i
+render (Plus a b) = "(" ++ render a ++ "+" ++ render b ++ ")"
+render (Times a b) = "(" ++ render a ++ "*" ++ render b ++ ")"
