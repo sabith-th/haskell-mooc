@@ -141,10 +141,9 @@ renderListExample = renderList justADot (9, 11) (9, 11)
 dotAndLine :: Picture
 dotAndLine = Picture f
   where
-    f (Coord x y)
-      | x == 3 && y == 4 = white
-      | y == 8 = pink
-      | otherwise = black
+    f (Coord 3 4) = white
+    f (Coord _ 8) = pink
+    f _ = black
 
 ------------------------------------------------------------------------------
 
@@ -250,7 +249,7 @@ exampleCircle = fill red (circle 80 100 200)
 rectangle :: Int -> Int -> Int -> Int -> Shape
 rectangle x0 y0 w h = Shape f
   where
-    f (Coord x y) = (x >= x0) && (x < (x0 + w)) && (y >= y0) && (y < (y0 + h))
+    f (Coord x y) = and [x >= x0, x < x0 + w, y >= y0, y < y0 + h]
 
 ------------------------------------------------------------------------------
 
@@ -429,15 +428,13 @@ xy = Picture f
 data Fill = Fill Color
 
 instance Transform Fill where
-  apply (Fill c) _ = Picture f'
-    where
-      f' coord = c
+  apply (Fill c) _ = solid c
 
 data Zoom = Zoom Int
   deriving (Show)
 
 instance Transform Zoom where
-  apply (Zoom z) (Picture f) = Picture (f . zoomCoord z)
+  apply (Zoom z) p = zoom z p
 
 data Flip = FlipX | FlipY | FlipXY
   deriving (Show)
@@ -509,7 +506,14 @@ instance Transform Blur where
           colors = [f (Coord (x + 1) y), f (Coord (x -1) y), f (Coord x y), f (Coord x (y + 1)), f (Coord x (y -1))]
           avg (Color a b c) = Color (div a 5) (div b 5) (div c 5)
 
--- [f (Coord (x+1) y), f (Coord (x-1) y), f (Coord x y), f (Coord x (y+1)), f (Coord x (y-1))]
+-- Alternate answer to above
+-- instance Transform Blur where
+--   apply Blur (Picture f) = Picture g
+--     where g c = avg (map f (neighbours c))
+--           neighbours (Coord x y) = [Coord x y, Coord (x-1) y, Coord (x+1) y, Coord x (y-1), Coord x (y+1)]
+--           avg colors = let n = length colors
+--                        in Color (sum (map getRed colors) `div` n) (sum (map getGreen colors) `div` n) (sum (map getBlue colors) `div` n)
+
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
@@ -528,7 +532,6 @@ data BlurMany = BlurMany Int
 
 instance Transform BlurMany where
   apply (BlurMany 0) p = p
-  apply (BlurMany 1) p = apply Blur p
   apply (BlurMany n) p = apply (BlurMany (n -1)) (apply Blur p)
 
 ------------------------------------------------------------------------------
