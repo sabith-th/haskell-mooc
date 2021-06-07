@@ -43,8 +43,8 @@ workload nExercises hoursPerExercise = go (nExercises * hoursPerExercise)
 -- Hint: use recursion
 
 echo :: String -> String
-echo [] = ""
-echo (a : rest) = (a : rest) ++ ", " ++ echo rest
+echo [] = []
+echo xs = xs ++ ", " ++ echo (tail xs)
 
 ------------------------------------------------------------------------------
 -- Ex 3: A country issues some banknotes. The banknotes have a serial
@@ -74,11 +74,10 @@ isValidNote serial
 --   repeated [1,2,1,2,3,3] ==> Just 3
 
 repeated :: Eq a => [a] -> Maybe a
-repeated [] = Nothing
-repeated [a] = Nothing
 repeated (a : b : xs)
   | a == b = Just a
   | otherwise = repeated (b : xs)
+repeated _ = Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 5: A laboratory has been collecting measurements. Some of the
@@ -142,18 +141,18 @@ open :: String -> Lock -> Lock
 open code (Locked pass)
   | code == pass = Unlocked pass
   | otherwise = Locked pass
-open code (Unlocked pass) = Unlocked pass
+open code l = l
 
 -- lock closes a lock. If the lock is already closed, nothing happens.
 lock :: Lock -> Lock
 lock (Unlocked pass) = Locked pass
-lock (Locked pass) = Locked pass
+lock l = l
 
 -- changeCode changes the code of an open lock. If the lock is closed,
 -- nothing happens.
 changeCode :: String -> Lock -> Lock
 changeCode code (Unlocked _) = Unlocked code
-changeCode _ (Locked pass) = Locked pass
+changeCode _ l = l
 
 ------------------------------------------------------------------------------
 -- Ex 7: Here's a type Text that just wraps a String. Implement an Eq
@@ -202,10 +201,11 @@ instance Eq Text where
 --       ==> [("a",1),("b",2)]
 
 compose :: (Eq a, Eq b) => [(a, b)] -> [(b, c)] -> [(a, c)]
-compose [] _ = []
-compose ((k, v) : xs) maps = case lookup v maps of
-  Nothing -> compose xs maps
-  (Just a) -> (k, a) : compose xs maps
+compose ab bc = concatMap apply ab
+  where
+    apply (a, b) = case lookup b bc of
+      Nothing -> []
+      Just c -> [(a, c)]
 
 ------------------------------------------------------------------------------
 -- Ex 9: Reorder a list using an [(Int,Int)] mapping.
@@ -243,9 +243,6 @@ compose ((k, v) : xs) maps = case lookup v maps of
 type Permutation = [(Int, Int)]
 
 permute :: Permutation -> [a] -> [a]
-permute perms list = go perms list list
-  where
-    go [] _ nl = nl
-    go ((from, to) : xs) ol nl = go xs ol nl'
-      where
-        nl' = take to nl ++ [ol !! from] ++ drop (to + 1) nl
+permute p = map snd . sortOn (snd . fst) . zip p
+
+-- Or permute p = map snd . sortBy (comparing (snd . fst)) . zip p
