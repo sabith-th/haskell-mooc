@@ -100,14 +100,14 @@ nextCol (i, j) = (i, j + 1)
 -- of the width (or height) n of the chess board; the naïve solution with elem
 -- takes O(n^3) time. Just ignore the previous sentence, if you're not familiar
 -- with the O-notation.)
-prettyPrint :: Size -> [Coord] -> String
-prettyPrint n coords = go (1, 1) []
-  where
-    go (i, j) res
-      | i == n && j == n = if (i, j) `elem` coords then res ++ "Q\n" else res ++ ".\n"
-      | i == n = if (i, j) `elem` coords then go (nextCol (i, j)) (res ++ "Q") else go (nextCol (i, j)) (res ++ ".")
-      | j == n = if (i, j) `elem` coords then go (nextRow (i, j)) (res ++ "Q\n") else go (nextRow (i, j)) (res ++ ".\n")
-      | otherwise = if (i, j) `elem` coords then go (nextCol (i, j)) (res ++ "Q") else go (nextCol (i, j)) (res ++ ".")
+prettyPrint n qs =
+  let helper (i, j) ((r, c) : qs)
+        | i == r && j == c = 'Q' : helper (nextCol (i, j)) qs
+      helper (i, j) qs
+        | i > n = ""
+        | j > n = '\n' : helper (nextRow (i, j)) qs
+        | otherwise = '.' : helper (nextCol (i, j)) qs
+   in helper (1, 1) (sort qs)
 
 --------------------------------------------------------------------------------
 -- Ex 3: The task in this exercise is to define the relations sameRow, sameCol,
@@ -198,12 +198,9 @@ type Candidate = Coord
 type Stack = [Coord]
 
 danger :: Candidate -> Stack -> Bool
-danger cand coords = go coords False
+danger c s = or [r c c' | r <- relations, c' <- s]
   where
-    go [] res = res
-    go (a : xs) res = isDanger cand a || go xs res
-      where
-        isDanger c1 c2 = sameRow c1 c2 || sameCol c1 c2 || sameDiag c1 c2 || sameAntidiag c1 c2
+    relations = [sameRow, sameCol, sameDiag, sameAntidiag]
 
 --------------------------------------------------------------------------------
 -- Ex 5: In this exercise, the task is to write a modified version of
@@ -238,19 +235,14 @@ danger cand coords = go coords False
 -- solution to this version. Any working solution is okay in this exercise.)
 
 prettyPrint2 :: Size -> Stack -> String
-prettyPrint2 n coords = go (1, 1) []
-  where
-    go (i, j) res
-      | i == n && j == n = res ++ (getSquareItem (i, j) coords ++ "\n")
-      | i == n = go (nextCol (i, j)) (res ++ getSquareItem (i, j) coords)
-      | j == n = go (nextRow (i, j)) (res ++ getSquareItem (i, j) coords ++ "\n")
-      | otherwise = go (nextCol (i, j)) (res ++ getSquareItem (i, j) coords)
-
-getSquareItem :: Coord -> Stack -> String
-getSquareItem cand coords
-  | cand `elem` coords = "Q"
-  | danger cand coords = "#"
-  | otherwise = "."
+prettyPrint2 n qs =
+  let helper (i, j) qs
+        | i > n = ""
+        | j > n = '\n' : helper (nextRow (i, j)) qs
+        | (i, j) `elem` qs = 'Q' : helper (nextCol (i, j)) qs
+        | danger (i, j) qs = '#' : helper (nextCol (i, j)) qs
+        | otherwise = '.' : helper (nextCol (i, j)) qs
+   in helper (1, 1) (sort qs)
 
 --------------------------------------------------------------------------------
 -- Ex 6: Now that we can check if a piece can be safely placed into a square in
@@ -291,12 +283,10 @@ getSquareItem cand coords
 --     Q#######
 
 fixFirst :: Size -> Stack -> Maybe Stack
-fixFirst n (x : xs) = go x
-  where
-    go (i, j)
-      | i > n || j > n = Nothing
-      | j == n = if danger (i, j) xs then Nothing else Just ((i, j) : xs)
-      | otherwise = if danger (i, j) xs then go (nextCol (i, j)) else Just ((i, j) : xs)
+fixFirst n ((i, j) : s)
+  | j > n = Nothing
+  | danger (i, j) s = fixFirst n (nextCol (i, j) : s)
+  | otherwise = Just ((i, j) : s)
 
 --------------------------------------------------------------------------------
 -- Ex 7: We need two helper functions for stack management.
@@ -411,9 +401,9 @@ step n stack = case fixFirst n stack of
 -- solve the n queens problem.
 
 finish :: Size -> Stack -> Stack
-finish n (a : xs)
-  | length xs == n = xs
-  | otherwise = finish n (step n (a : xs))
+finish n qs
+  | length qs > n = tail qs
+  | otherwise = finish n (step n qs)
 
 solve :: Size -> Stack
 solve n = finish n [(1, 1)]
