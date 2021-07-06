@@ -37,9 +37,8 @@ doublify (a : xs) = a : a : doublify xs
 --   take 10 (interleave [1..] (repeat 0)) ==> [1,0,2,0,3,0,4,0,5,0]
 
 interleave :: [a] -> [a] -> [a]
+interleave (x : xs) ys = x : interleave ys xs
 interleave [] ys = ys
-interleave xs [] = xs
-interleave (a : xs) (b : ys) = a : b : interleave xs ys
 
 ------------------------------------------------------------------------------
 -- Ex 3: Deal out cards. Given a list of cards (strings), and a list
@@ -75,13 +74,10 @@ deal players cards = zip cards (cycle players)
 
 averages :: [Double] -> [Double]
 averages [] = []
-averages (x : xs) = go xs x 1
+averages (x : xs) = go x 1 xs
   where
-    go :: [Double] -> Double -> Double -> [Double]
-    go [] la _ = [la]
-    go (y : ys) la n = la : go ys nla (n + 1)
-      where
-        nla = ((la * n) + y) / (n + 1)
+    go sum count (x : xs) = (sum / count) : go (sum + x) (count + 1) xs
+    go sum count [] = [sum / count]
 
 ------------------------------------------------------------------------------
 -- Ex 5: Given two lists, xs and ys, and an element z, generate an
@@ -99,7 +95,7 @@ averages (x : xs) = go xs x 1
 --   take 10 (alternate [1,2] [3,4,5] 0) ==> [1,2,0,3,4,5,0,1,2,0]
 
 alternate :: [a] -> [a] -> a -> [a]
-alternate xs ys z = cycle (xs ++ [z] ++ ys ++ [z])
+alternate xs ys z = xs ++ z : alternate ys xs z
 
 ------------------------------------------------------------------------------
 -- Ex 6: Check if the length of a list is at least n. Make sure your
@@ -111,10 +107,7 @@ alternate xs ys z = cycle (xs ++ [z] ++ ys ++ [z])
 --   lengthAtLeast 10 [0..]  ==> True
 
 lengthAtLeast :: Int -> [a] -> Bool
-lengthAtLeast n xs = go xs 0
-  where
-    go [] l = l >= n
-    go (a : as) l = (l >= n) || go as (l + 1)
+lengthAtLeast n xs = length (take n xs) == n
 
 ------------------------------------------------------------------------------
 -- Ex 7: The function chunks should take in a list, and a number n,
