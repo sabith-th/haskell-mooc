@@ -18,7 +18,8 @@ import Mooc.VeryLimitedPrelude
 --   False ||| undefined ==> an error!
 
 (|||) :: Bool -> Bool -> Bool
-x ||| y = if y then True else x
+_ ||| True = True
+x ||| False = x
 
 ------------------------------------------------------------------------------
 -- Ex 2: Define the function boolLength, that returns the length of a
@@ -48,9 +49,9 @@ boolLength (False : xs) = 1 + boolLength xs
 --   validate (\x -> undefined) 3  ==>  an error!
 
 validate :: (a -> Bool) -> a -> a
-validate predicate value = if res then value else value
-  where
-    res = predicate value
+validate predicate value = case predicate value of
+  True -> value
+  False -> value
 
 ------------------------------------------------------------------------------
 -- Ex 4: Even though we can't implement the generic seq function
@@ -85,14 +86,12 @@ class MySeq a where
 
 instance MySeq Bool where
   myseq True x = x
-  myseq False x = x
+  myseq _ x = x
 
 instance MySeq Int where
-  myseq i a = go (i * 0) a
-    where
-      go 0 a = a
-      go _ a = a
+  myseq 0 x = x
+  myseq _ x = x
 
 instance MySeq [a] where
-  myseq [] b = b
-  myseq (a : xs) b = b
+  myseq [] x = x
+  myseq _ x = x
