@@ -58,11 +58,9 @@ greet2 = do
 --   ["alice","bob","carl"]
 
 readWords :: Int -> IO [String]
-readWords 0 = return []
 readWords n = do
-  word <- getLine
-  words <- readWords (n -1)
-  return (sort (word : words))
+  words <- replicateM n getLine
+  return $ sort words
 
 ------------------------------------------------------------------------------
 -- Ex 5: define the IO operation readUntil f, which reads lines from
@@ -91,11 +89,7 @@ readUntil f = do
 -- Ex 6: given n, print the numbers from n to 0, one per line
 
 countdownPrint :: Int -> IO ()
-countdownPrint 0 = do
-  print 0
-countdownPrint n = do
-  print n
-  countdownPrint (n - 1)
+countdownPrint n = mapM_ print [n, n -1 .. 0]
 
 ------------------------------------------------------------------------------
 -- Ex 7: isums n should read n numbers from the user (one per line) and
@@ -110,15 +104,14 @@ countdownPrint n = do
 --   5. produces 9
 
 isums :: Int -> IO Int
-isums n = go n 0
+isums n = go 0 n
   where
-    go 0 sum = return sum
-    go n sum = do
-      i <- getLine
-      let x = read i :: Int
-      let newSum = sum + x
-      print newSum
-      go (n -1) newSum
+    go sum 0 = return sum
+    go sum n = do
+      i <- readLn
+      let sum' = sum + i
+      print sum'
+      go sum' (n -1)
 
 ------------------------------------------------------------------------------
 -- Ex 8: when is a useful function, but its first argument has type
@@ -149,14 +142,11 @@ ask = do
   return $ line == "Y"
 
 while :: IO Bool -> IO () -> IO ()
-while cond op = do
-  c <- cond
-  when
-    c
-    ( do
-        op
-        while cond op
-    )
+while cond op = whenM cond iteration
+  where
+    iteration = do
+      op
+      while cond op
 
 ------------------------------------------------------------------------------
 -- Ex 10: given a string and an IO operation, print the string, run
