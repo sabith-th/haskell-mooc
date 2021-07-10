@@ -169,6 +169,12 @@ hFetchLines h = do
       rest <- hFetchLines h
       return (line : rest)
 
+-- OR
+hFetchLines' :: Handle -> IO [String]
+hFetchLines' h = do
+  contents <- hGetContents h
+  return (lines contents)
+
 ------------------------------------------------------------------------------
 -- Ex 7: Given a Handle and a list of line indexes, produce the lines
 -- at those indexes from the file.
@@ -180,16 +186,16 @@ hFetchLines h = do
 -- handle.
 
 hSelectLines :: Handle -> [Int] -> IO [String]
-hSelectLines h nums = do
-  lines <- hFetchLines h
-  return (filterLines lines nums)
+hSelectLines h inds = do
+  ls <- hFetchLines h
+  return $ pick ls inds
 
-filterLines :: [String] -> [Int] -> [String]
-filterLines _ [] = []
-filterLines lines nums = go nums []
-  where
-    go [] res = res
-    go (n : ns) res = go ns (res ++ [lines !! (n - 1)])
+pick :: [a] -> [Int] -> [a]
+pick ls inds =
+  let numbered = zip [1 ..] ls
+      include (i, _) = elem i inds
+      filtered = filter include numbered
+   in map snd filtered
 
 ------------------------------------------------------------------------------
 -- Ex 8: In this exercise we see how a program can be split into a
