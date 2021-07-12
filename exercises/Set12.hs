@@ -36,10 +36,10 @@ incrementAll = fmap (+ 1)
 --       ==> Just [Just True,Nothing]
 
 fmap2 :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
-fmap2 f = fmap (fmap f)
+fmap2 = fmap . fmap
 
 fmap3 :: (Functor f, Functor g, Functor h) => (a -> b) -> f (g (h a)) -> f (g (h b))
-fmap3 f = fmap (fmap2 f)
+fmap3 = fmap . fmap . fmap
 
 ------------------------------------------------------------------------------
 -- Ex 3: below you'll find a type Result that works a bit like Maybe,
@@ -52,8 +52,8 @@ data Result a = MkResult a | NoResult | Failure String
   deriving (Show)
 
 instance Functor Result where
-  fmap f NoResult = NoResult
-  fmap f (Failure s) = Failure s
+  fmap _ NoResult = NoResult
+  fmap _ (Failure s) = Failure s
   fmap f (MkResult a) = MkResult (f a)
 
 ------------------------------------------------------------------------------
@@ -98,11 +98,7 @@ instance Functor TwoList where
 --   count 'c' (Just 'c') ==> 1
 
 count :: (Eq a, Foldable f) => a -> f a -> Int
-count item = foldr count 0
-  where
-    count x cnt
-      | x == item = cnt + 1
-      | otherwise = cnt
+count x f = length (filter (== x) (toList f))
 
 ------------------------------------------------------------------------------
 -- Ex 7: Return all elements that are in two Foldables, as a list.
@@ -113,11 +109,7 @@ count item = foldr count 0
 --   inBoth Nothing [3]    ==> []
 
 inBoth :: (Foldable f, Foldable g, Eq a) => f a -> g a -> [a]
-inBoth xs ys = foldr check [] xs
-  where
-    check x ls
-      | count x ys > 0 = x : ls
-      | otherwise = ls
+inBoth f g = toList f `intersect` toList g
 
 ------------------------------------------------------------------------------
 -- Ex 8: Implement the instance Foldable List.
